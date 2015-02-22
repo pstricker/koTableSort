@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Client Side Table Sorting Using Knockout.js</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="scripts/knockout.js"></script>
+    <style type="text/css">
+        table.table div.sortable {
+            cursor: pointer;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+            table.table div.sortable i {
+                width: 13px;
+                margin-left: 7px;
+                display: inline-block;
+            }
+    </style>
+</head>
+<body>
+<table id="playersTable" class="table table-striped">
+    <thead>
+        <tr data-bind="foreach: columns">
+            <th>
+                <div class="sortable" data-bind="click: $root.sortClick.bind(property)">
+                    <span data-bind="html: header"></span><i data-bind="css: state"></i>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody data-bind="foreach: players">
+        <tr>
+            <td data-bind="text: firstName"></td>
+            <td data-bind="text: lastName"></td>
+            <td data-bind="text: dob"></td>
+            <td data-bind="text: wsWon"></td>
+            <td data-bind="text: stats.hr"></td>
+            <td data-bind="text: stats.avg"></td>
+        </tr>
+    </tbody>
+</table>
+    <script type="text/javascript">
+
+        function PlayersViewModel() {
+
+            var self = this;
+
+            //#region Constant Properties
+            self.descending = "fa fa-arrow-down";
+            self.ascending = "fa fa-arrow-up";
+            //#endregion
+
+            //#region Knockout Observables
+            // Observable array that represents each column in the table
+            self.columns = ko.observableArray([
+                { property: "firstName", header: "First Name", type: "string", state: ko.observable("") },
+                { property: "lastName", header: "Last Name", type: "string", state: ko.observable("") },
+                { property: "dob", header: "Date of Birth", type: "date", state: ko.observable("") },
+                { property: "wsWon", header: "World Series Championships", type: "number", state: ko.observable("") },
+                { property: "stats.hr", header: "Home Runs", type: "object", state: ko.observable("") },
+                { property: "stats.avg", header: "Batting Average", type: "object", state: ko.observable("") }
+            ]);
+
+            // Observable array that will be our data
+            self.players = ko.observableArray([
+               { firstName: "Micky", lastName: "Mantle", dob: "10/20/1931", wsWon: "7", stats: { hr: "536", avg: ".298" } },
+               { firstName: "Ken", lastName: "Griffey Jr.", dob: "11/21/1969", wsWon: "0", stats: { hr: "630", avg: ".284" } },
+               { firstName: "Derek", lastName: "Jeter", dob: "6/26/1974", wsWon: "5", stats: { hr: "260", avg: ".310" } },
+               { firstName: "Lenny", lastName: "Dykstra", dob: "2/10/1963", wsWon: "1", stats: { hr: "81", avg: ".285" } },
+               { firstName: "Ty", lastName: "Cobb", dob: "12/18/1886", wsWon: "0", stats: { hr: "117", avg: ".367" } }
+            ]);
+            //#endregion
+
+            //#region Sorting methods
+            self.sortClick = function (column) {
+                try {
+                    // Call this method to clear the state of any columns OTHER than the target
+                    // so we can keep track of the ascending/descending
+                    self.clearColumnStates(column);
+
+                    // Get the state of the sort type 
+                    if (column.state() === "" || column.state() === self.descending) {
+                        column.state(self.ascending);
+                    }
+                    else {
+                        column.state(self.descending);
+                    }
+
+                    if (column.type === "string" || column.type === "number") {
+                        self.genericSort(column);
+                    }
+                    else if (column.type === "date") {
+                        self.dateSort(column);
+                    }
+                    else if (column.type === "object") {
+                        self.objectSort(column);
+                    }
+                }
+                catch (err) {
+                    // Always remember to handle those errors that could occur during a user interaction
+                    alert(err);
+                }
+            };
+
+            // Generic sort method for numbers and strings
+            self.genericSort = function (column) { // Pass in the column object
+
+                self.players(self.players().sort(function (a, b) {
+
+                    // Set strings to lowercase to sort properly
+                    var playerA = a[column.property].toLowerCase(), playerB = b[column.property].toLowerCase(); 
+                    if (playerA < playerB) {
+                        return (column.state() === self.ascending) ? -1 : 1;
+                    }
+                    else if (playerA > playerB) {
+                        return (column.state() === self.ascending) ? 1 : -1;
+                    }
+                    else {
+                        return 0
+                    }
+                }));
+            };
+
+            // Sort by date
+            self.dateSort = function (column) {
+
+                self.players(self.players().sort(function (a, b) {
+
+                    if (column.state() === self.ascending) {
+                        return new Date(a[column.property]) - new Date(b[column.property]);
+                    }
+                    else {
+                        return new Date(b[column.property]) - new Date(a[column.property]);
+                    }
+                }));
+            };
+
+            // Using a deep get method to find nested object properties
+            self.objectSort = function (column) {
+
+                self.players(self.players().sort(function (a, b) {
+
+                    var playerA = self.deepGet(a, column.property),
+                        playerB = self.deepGet(b, column.property);
+
+                    if (playerA < playerB) {
+                        return (column.state() === self.ascending) ? -1 : 1;
+                    }
+                    else if (playerA > playerB) {
+                        return (column.state() === self.ascending) ? 1 : -1;
+                    }
+                    else {
+                        return 0
+                    }
+                }));
+            };
+
+            //#endregion
+
+            //#region Utility Methods
+            self.clearColumnStates = function (selectedColumn) {
+                var otherColumns = self.columns().filter(function (col) {
+                    return col != selectedColumn;
+                });
+
+                for (var i = 0; i < otherColumns.length; i++) {
+                    otherColumns[i].state("");
+                }
+            };
+
+            self.deepGet = function (object, path) {
+                var paths = path.split('.'),
+                    current = object;
+                for (var i = 0; i < paths.length; ++i) {
+                    if (current[paths[i]] == undefined) {
+                        return undefined;
+                    } else {
+                        current = current[paths[i]];
+                    }
+                }
+
+                // If the value of current is not a number, return a lowercase string. If it is, return a number.
+                return (isNaN(current)) ? current.toLowerCase() : new Number(current);
+            };
+            //#endregion
+        };
+
+        ko.applyBindings(new PlayersViewModel());
+    </script>
+    <script>
+        (function (i, s, o, g, r, a, m) {
+            i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+                (i[r].q = i[r].q || []).push(arguments)
+            }, i[r].l = 1 * new Date(); a = s.createElement(o),
+            m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+        })(window, document, 'script', '//www.google-analytics.com/analytics.js', 'ga');
+
+        ga('create', 'UA-58781613-1', 'auto');
+        ga('send', 'pageview');
+    </script>
+</body>
+</html>

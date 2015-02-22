@@ -24,27 +24,27 @@
     </style>
 </head>
 <body>
-<table id="playersTable" class="table table-striped">
-    <thead>
-        <tr data-bind="foreach: columns">
-            <th>
-                <div class="sortable" data-bind="click: $root.sortClick.bind(property)">
-                    <span data-bind="html: header"></span><i data-bind="css: state"></i>
-                </div>
-            </th>
-        </tr>
-    </thead>
-    <tbody data-bind="foreach: players">
-        <tr>
-            <td data-bind="text: firstName"></td>
-            <td data-bind="text: lastName"></td>
-            <td data-bind="text: dob"></td>
-            <td data-bind="text: wsWon"></td>
-            <td data-bind="text: stats.hr"></td>
-            <td data-bind="text: stats.avg"></td>
-        </tr>
-    </tbody>
-</table>
+    <table id="playersTable" class="table table-striped">
+        <thead>
+            <tr data-bind="foreach: columns">
+                <th>
+                    <div class="sortable" data-bind="click: $root.sortClick.bind(property)">
+                        <span data-bind="html: header"></span><i data-bind="css: state"></i>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody data-bind="foreach: players">
+            <tr>
+                <td data-bind="text: firstName"></td>
+                <td data-bind="text: lastName"></td>
+                <td data-bind="text: dob"></td>
+                <td data-bind="text: wsWon"></td>
+                <td data-bind="text: stats.hr"></td>
+                <td data-bind="text: stats.avg"></td>
+            </tr>
+        </tbody>
+    </table>
     <script type="text/javascript">
 
         function PlayersViewModel() {
@@ -84,7 +84,7 @@
                     // so we can keep track of the ascending/descending
                     self.clearColumnStates(column);
 
-                    // Get the state of the sort type 
+                    // Get the state of the sort type
                     if (column.state() === "" || column.state() === self.descending) {
                         column.state(self.ascending);
                     }
@@ -92,14 +92,20 @@
                         column.state(self.descending);
                     }
 
-                    if (column.type === "string" || column.type === "number") {
-                        self.genericSort(column);
-                    }
-                    else if (column.type === "date") {
-                        self.dateSort(column);
-                    }
-                    else if (column.type === "object") {
-                        self.objectSort(column);
+                    switch (column.type) {
+                        case "number":
+                            self.numberSort(column);
+                            break;
+                        case "date":
+                            self.dateSort(column);
+                            break;
+                        case "object":
+                            self.objectSort(column);
+                            break;
+                        case "string":
+                        default:
+                            self.stringSort(column);
+                            break;
                     }
                 }
                 catch (err) {
@@ -109,12 +115,12 @@
             };
 
             // Generic sort method for numbers and strings
-            self.genericSort = function (column) { // Pass in the column object
+            self.stringSort = function (column) { // Pass in the column object
 
                 self.players(self.players().sort(function (a, b) {
 
                     // Set strings to lowercase to sort properly
-                    var playerA = a[column.property].toLowerCase(), playerB = b[column.property].toLowerCase(); 
+                    var playerA = a[column.property].toLowerCase(), playerB = b[column.property].toLowerCase();
                     if (playerA < playerB) {
                         return (column.state() === self.ascending) ? -1 : 1;
                     }
@@ -125,6 +131,20 @@
                         return 0
                     }
                 }));
+            };
+
+            self.numberSort = function (column) {
+                self.players(self.players().sort(function (a, b) {
+
+                    var playerA = a[column.property], playerB = b[column.property];
+                    if (column.state() === self.ascending) {
+                        return playerA - playerB;
+                    }
+                    else {
+                        return playerB - playerA;
+                    }
+                }));
+
             };
 
             // Sort by date

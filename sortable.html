@@ -114,12 +114,12 @@
                 }
             };
 
-            // Generic sort method for numbers and strings
+            // Sort strings
             self.stringSort = function (column) { // Pass in the column object
 
                 self.players(self.players().sort(function (a, b) {
 
-                    // Set strings to lowercase to sort properly
+                    // Set strings to lowercase to sort in a predictive way
                     var playerA = a[column.property].toLowerCase(), playerB = b[column.property].toLowerCase();
                     if (playerA < playerB) {
                         return (column.state() === self.ascending) ? -1 : 1;
@@ -133,6 +133,7 @@
                 }));
             };
 
+            // Sort numbers
             self.numberSort = function (column) {
                 self.players(self.players().sort(function (a, b) {
 
